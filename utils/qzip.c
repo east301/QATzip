@@ -181,7 +181,7 @@ static int doProcessBuffer(QzSession_T *sess,
                            unsigned char *src, unsigned int *src_len,
                            unsigned char *dst, unsigned int dst_len,
                            RunTimeList_T *time_list, FILE *dst_file,
-                           unsigned int *dst_file_size, int is_compress)
+                           off_t *dst_file_size, int is_compress)
 {
     int ret = QZ_FAIL;
     unsigned int done = 0;
@@ -252,15 +252,18 @@ void doProcessFile(QzSession_T *sess, const char *src_file_name,
 {
     int ret = OK;
     struct stat src_file_stat;
-    unsigned int src_buffer_size = 0, src_file_size = 0;
-    unsigned int dst_buffer_size = 0, dst_file_size = 0;
+    unsigned int src_buffer_size = 0;
+    off_t src_file_size = 0;
+    unsigned int dst_buffer_size = 0;
+    off_t dst_file_size = 0;
     unsigned int file_remaining = 0;
     unsigned char *src_buffer = NULL;
     unsigned char *dst_buffer = NULL;
     FILE *src_file = NULL;
     FILE *dst_file = NULL;
-    unsigned int bytes_read = 0, bytes_processed = 0;
-    const off_t max_file_size = UINT_MAX;
+    unsigned int bytes_read = 0;
+    off_t bytes_processed = 0;
+    const off_t max_file_size = 9223372036854775807 - 1;    // => std::numeric_limits<off_t>::max() - 1
     RunTimeList_T *time_list_head = malloc(sizeof(RunTimeList_T));
     assert(NULL != time_list_head);
     gettimeofday(&time_list_head->time_s, NULL);
@@ -280,7 +283,7 @@ void doProcessFile(QzSession_T *sess, const char *src_file_name,
         exit(ERROR);
     }
 
-    src_file_size = GET_LOWER_32BITS(src_file_stat.st_size);
+    src_file_size = src_file_stat.st_size;
     src_buffer_size = (src_file_size > SRC_BUFF_LEN) ? SRC_BUFF_LEN : src_file_size;
     if (is_compress) {
         dst_buffer_size = qzMaxCompressedLength(src_buffer_size);
